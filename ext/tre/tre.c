@@ -119,7 +119,12 @@ tre_aindex(int argc, VALUE *argv, VALUE self) {
 		return Qnil;
 	else
 		// Byte offset to char offset
-		return rb_str_sublen(string, INT2NUM(NUM2INT(offset) + match.pmatch[0].rm_so) );
+		// return rb_str_sublen(string, INT2NUM(NUM2INT(offset) + match.pmatch[0].rm_so) );
+		return 
+			rb_range_new(
+				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_so) ),
+				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_eo) ),
+				1);
 }
 
 void
