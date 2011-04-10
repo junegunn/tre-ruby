@@ -1,16 +1,18 @@
 require 'helper'
 
-class TestAgrep < Test::Unit::TestCase
+class TestTRE < Test::Unit::TestCase
 	def test_extend
-		assert_equal 2, "aaba".extend(Agrep).aindex('ba')
-		assert_equal 2, "aaba".extend(Agrep).aindex(/ba/)
+		assert_equal 2...4, "aaba".extend(TRE).aindex('ba')
+		assert_equal 2...4, "aaba".extend(TRE).aindex(/ba/)
 	end
 
 	def test_include
-		String.send :include, Agrep
+		String.send :include, TRE
 
-		assert_equal 2, "aaba".aindex('ba')
-		assert_equal 2, "aaba".aindex(/ba/)
+		#1000000.times do
+		assert_equal 2...4, "aaba".aindex('ba')
+		assert_equal 2...4, "aaba".aindex(/ba/)
+		#end
 	end
 
 	def test_aindex

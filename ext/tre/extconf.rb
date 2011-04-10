@@ -13,5 +13,5 @@ x 'tre' unless have_header('tre/tre.h')
 	x "Macro #{macro}" unless have_macro macro, 'tre/tre.h'
 end
 
-create_makefile('agrep/tre')
+create_makefile('tre-ruby/tre')
 

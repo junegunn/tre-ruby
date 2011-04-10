@@ -1,7 +1,6 @@
 #include "ruby.h"
 #include "tre/tre.h"
 
-VALUE mAgrep;
 VALUE mTRE;
 
 #define _TRE_APARAM_OVERRIDE(P) \
@@ -106,7 +105,7 @@ tre_aindex(int argc, VALUE *argv, VALUE self) {
 	match.pmatch = pmatch;
 
 	long len = RSTRING_LEN(string) - NUM2LONG(offset);
-	// TODO: GC?
+	// TODO: GC required?
 	VALUE substr = rb_str_substr(string, NUM2LONG(offset), len); 
 
 	int result = tre_reganexec(&preg,
@@ -123,14 +122,13 @@ tre_aindex(int argc, VALUE *argv, VALUE self) {
 		return 
 			rb_range_new(
 				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_so) ),
-				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_eo) ),
-				1);
+				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_eo) - 1 ),
+				0);
 }
 
 void
 Init_tre() {
-	mAgrep = rb_define_module("Agrep");
-	mTRE = rb_define_module_under(mAgrep, "TRE");
+	mTRE = rb_define_module("TRE");
 	rb_define_method(mTRE, "_aindex", tre_aindex, -1);
 	// rb_define_method(mTRE, "_amatch", tre_amatch, -1);
 }

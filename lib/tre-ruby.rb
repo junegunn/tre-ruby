@@ -1,12 +1,12 @@
 # encoding: UTF-8
 
 #$LOAD_PATH.unshift '.' # FIXME
-require 'agrep/tre'
+require 'tre/tre'
 
-module Agrep
+module TRE
 	# Returns Range
-	def aindex regexp, offset = 0, params = Agrep::Params.default
-		raise ArgumentError.new("Invalid parameter") unless params.is_a? Agrep::Params
+	def aindex regexp, offset = 0, params = TRE::AParams.default
+		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
 		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
 
 		input = parse_pattern regexp
@@ -14,10 +14,10 @@ module Agrep
 	end
 	
 	# TODO
-	def amatch regexp, offset = 0, params = Params.default
+	def amatch regexp, offset = 0, params = AParams.default
 		raise NotImplementedError
 
-		raise ArgumentError.new("Invalid parameter") unless params.is_a? Agrep::Params
+		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
 		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
 
 		if block_given?
@@ -27,17 +27,18 @@ module Agrep
 	end
 
 	# TODO
-	def ascan regexp, params = Params.default
+	def ascan regexp, params = AParams.default
 		raise NotImplementedError
 
-		raise ArgumentError.new unless params.is_a? Agrep::Params
+		raise ArgumentError.new unless params.is_a? TRE::AParams
 
 		if block_given?
 		else
 		end
 	end
 	
-	class Params
+	# Parameters for approximate matching.
+	class AParams
 		attr_accessor :cost_ins  # Default cost of an inserted character.
 		attr_accessor :cost_del  # Default cost of a deleted character.
 		attr_accessor :cost_subst# Default cost of a substituted character.
@@ -49,11 +50,11 @@ module Agrep
 		attr_accessor :max_err   # Maximum allowed number of errors total.
 
 		def self.default
-			@@default ||= Agrep::Params.new.freeze
+			@@default ||= TRE::AParams.new.freeze
 		end
 
 		def self.default= nd
-			raise ArgumentError.new('Not Agrep::Params object') unless nd.is_a? Agrep::Params
+			raise ArgumentError.new('Not TRE::AParams object') unless nd.is_a? TRE::AParams
 
 			@@default = nd
 		end
@@ -71,27 +72,6 @@ module Agrep
 
 			yield self if block_given?
 		end
-	end
-
-	class MatchData
-		def initialize
-		end
-
-		def size
-		end
-
-		alias length size
-
-		def [] idx
-		end
-	end
-
-	def self.included base
-		base.send :include, Agrep::TRE
-	end
-
-	def self.extended base
-		base.extend Agrep::TRE
 	end
 
 	# TODO
@@ -125,15 +105,13 @@ private
 end
 
 if __FILE__ == $0
-# 	puts "aaba".extend(Agrep).aindex('ba')
-
 	class String
-		include Agrep
+		include TRE
 	end
 
-	params = Agrep::Params.new
+	params = TRE::AParams.new
 	params.max_err = 1
-	Agrep::Params.default = params
+	TRE::AParams.default = params
 	
 	str = "탐크루즈의 사이언톨로지"
 	puts str.aindex(/크루스/i)

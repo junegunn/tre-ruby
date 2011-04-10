@@ -12,11 +12,11 @@ require 'rake'
 require 'jeweler'
 jeweler_tasks = Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "agrep"
-  gem.homepage = "http://github.com/junegunn/agrep"
+  gem.name = "tre-ruby"
+  gem.homepage = "http://github.com/junegunn/tre-ruby"
   gem.license = "MIT"
-  gem.summary = %Q{TRE binding for Ruby}
-  gem.description = %Q{TRE binding for Ruby}
+  gem.summary = %Q{Approximate regular expression matching using TRE}
+  gem.description = %Q{Ruby binding for TRE. Provides interface for approximate regular expression matching.}
   gem.email = "junegunn.c@gmail.com"
   gem.authors = ["Junegunn Choi"]
   # Include your dependencies below. Runtime dependencies are required when using your gem,
@@ -36,7 +36,7 @@ Jeweler::RubygemsDotOrgTasks.new
 require 'rake/extensiontask'
 #jeweler_tasks.gemspec.version = jeweler_tasks.jeweler.version
 Rake::ExtensionTask.new('tre', jeweler_tasks.gemspec) do |ext|
-	ext.lib_dir = 'lib/agrep'
+	ext.lib_dir = 'lib/tre-ruby'
 end
 
 require 'rake/testtask'
@@ -60,7 +60,7 @@ Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
 
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title = "agrep #{version}"
+  rdoc.title = "tre-ruby #{version}"
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
