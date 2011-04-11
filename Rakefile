@@ -16,7 +16,7 @@ jeweler_tasks = Jeweler::Tasks.new do |gem|
   gem.homepage = "http://github.com/junegunn/tre-ruby"
   gem.license = "MIT"
   gem.summary = %Q{Approximate regular expression matching using TRE}
-  gem.description = %Q{Ruby binding for TRE. Provides interface for approximate regular expression matching.}
+  gem.description = %Q{Ruby binding for TRE library. Provides interface for approximate regular expression matching.}
   gem.email = "junegunn.c@gmail.com"
   gem.authors = ["Junegunn Choi"]
   # Include your dependencies below. Runtime dependencies are required when using your gem,

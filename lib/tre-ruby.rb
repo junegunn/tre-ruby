@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
-#$LOAD_PATH.unshift '.' # FIXME
-require 'tre/tre'
+$LOAD_PATH.unshift '.' #FIXME
+require 'tre-ruby/tre'
 
 module TRE
 	# Returns Range
@@ -10,7 +10,36 @@ module TRE
 		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
 
 		input = parse_pattern regexp
-		_aindex(input[:source], self, offset, params, input[:ignore_case], input[:multi_line])
+		__aindex(input[:source], self, offset, params, 
+				input[:ignore_case], input[:multi_line])
+	end
+
+	# Returns Array of Ranges
+	def ascan_r regexp, params = AParams.default, &block
+		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
+
+		input = parse_pattern regexp
+		result = __ascan(input[:source], self, 0, params, 
+				input[:ignore_case], input[:multi_line], input[:num_captures])
+
+		return result unless block_given?
+		yield_scan_result result, &block
+	end
+
+	# Returns Array of Substrings
+	def ascan regexp, params = AParams.default, &block
+		result = ascan_r(regexp, params).map { |e|
+			case e
+			when Array
+				e.map { |ee| self[ee] }.take_while { |ee| ee }
+			when Range
+				self[e]
+			else
+				raise RuntimeError.new
+			end
+		}
+		return result unless block_given?
+		yield_scan_result result, &block
 	end
 	
 	# TODO
@@ -19,22 +48,6 @@ module TRE
 
 		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
 		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
-
-		if block_given?
-			# yield match data
-		else
-		end
-	end
-
-	# TODO
-	def ascan regexp, params = AParams.default
-		raise NotImplementedError
-
-		raise ArgumentError.new unless params.is_a? TRE::AParams
-
-		if block_given?
-		else
-		end
 	end
 	
 	# Parameters for approximate matching.
@@ -49,14 +62,13 @@ module TRE
 		attr_accessor :max_subst # Maximum allowed number of substitutes.
 		attr_accessor :max_err   # Maximum allowed number of errors total.
 
+		# Caution: Adjusting the default AParams object makes the code not thread-safe!
 		def self.default
-			@@default ||= TRE::AParams.new.freeze
+			@@default ||= TRE::AParams.new
 		end
 
-		def self.default= nd
-			raise ArgumentError.new('Not TRE::AParams object') unless nd.is_a? TRE::AParams
-
-			@@default = nd
+		def self.reset_default
+			@@default = TRE::AParams.new
 		end
 
 		def initialize
@@ -93,29 +105,36 @@ private
 			opts = pattern.options
 
 			# Not supported
-			raise ArgumentError("x flag not supported") if (opts & Regexp::EXTENDED) > 0
+			raise ArgumentError.new("x flag not supported") if (opts & Regexp::EXTENDED) > 0
 			ret[:multi_line] = (opts & Regexp::MULTILINE) > 0
 			ret[:ignore_case] = (opts & Regexp::IGNORECASE) > 0
+
+			# Pessimistic estimation of the number of captures
+			ret[:num_captures] = ret[:source].each_char.count { |c| c == '(' }
 		when String
 			ret[:source] = Regexp.escape pattern
+			ret[:num_captures] = 0
 		end
 
 		ret
 	end
-end
 
-if __FILE__ == $0
-	class String
-		include TRE
+	def yield_scan_result result, &block
+		return self if result.empty?
+
+		# With captures
+		if result.first.is_a?(Array)
+			# arity == 1
+			if block.arity == 1
+				result.each { |r| yield r[1..-1] }
+			else
+				result.each { |r| yield *r[1..-1] }
+			end
+		# Without captures
+		else
+			result.each { |r| yield r }
+		end
+		self
 	end
-
-	params = TRE::AParams.new
-	params.max_err = 1
-	TRE::AParams.default = params
-	
-	str = "탐크루즈의 사이언톨로지"
-	puts str.aindex(/크루스/i)
-	puts str.aindex(/크루스/i)
-	puts str[ str.aindex(/사이톨로/i) ]
 end
 

@@ -3,7 +3,7 @@
 
 VALUE mTRE;
 
-#define _TRE_APARAM_OVERRIDE(P) \
+#define _TRE_RUBY_APARAM_OVERRIDE(P) \
 	VALUE P = rb_funcall(params, rb_intern(#P), 0); \
 	if (P != Qnil) aparams->P = NUM2INT(P)
 static void
@@ -12,16 +12,16 @@ tre_build_aparams(regaparams_t* aparams, VALUE params) {
 	tre_regaparams_default(aparams);
 
 	// Then override
-	_TRE_APARAM_OVERRIDE(cost_ins);
-	_TRE_APARAM_OVERRIDE(cost_del);
-	_TRE_APARAM_OVERRIDE(cost_subst);
-	_TRE_APARAM_OVERRIDE(max_cost);
-	_TRE_APARAM_OVERRIDE(max_ins);
-	_TRE_APARAM_OVERRIDE(max_del);
-	_TRE_APARAM_OVERRIDE(max_subst);
-	_TRE_APARAM_OVERRIDE(max_err);
+	_TRE_RUBY_APARAM_OVERRIDE(cost_ins);
+	_TRE_RUBY_APARAM_OVERRIDE(cost_del);
+	_TRE_RUBY_APARAM_OVERRIDE(cost_subst);
+	_TRE_RUBY_APARAM_OVERRIDE(max_cost);
+	_TRE_RUBY_APARAM_OVERRIDE(max_ins);
+	_TRE_RUBY_APARAM_OVERRIDE(max_del);
+	_TRE_RUBY_APARAM_OVERRIDE(max_subst);
+	_TRE_RUBY_APARAM_OVERRIDE(max_err);
 }
-#undef _TRE_APARAM_OVERRIDE
+#undef _TRE_RUBY_APARAM_OVERRIDE
 
 static void
 tre_compile_regex(regex_t* preg, VALUE pattern, VALUE ignore_case, VALUE multi_line) {
@@ -82,14 +82,10 @@ tre_compile_regex(regex_t* preg, VALUE pattern, VALUE ignore_case, VALUE multi_l
 }
 
 static VALUE
-tre_aindex(int argc, VALUE *argv, VALUE self) {
-	VALUE pattern, string, offset, params, ignore_case, multi_line;
+tre_traverse(VALUE pattern, VALUE string, long char_offset, VALUE params,
+		VALUE ignore_case, VALUE multi_line, int num_captures, VALUE repeat) {
 
-	rb_scan_args(argc, argv, "60", &pattern, &string, &offset, &params, &ignore_case, &multi_line);
-
-	Check_Type(string, T_STRING);
-
-	// Compile
+	// Compile once
 	regex_t preg;
 	tre_compile_regex(&preg, pattern, ignore_case, multi_line);
 
@@ -97,39 +93,102 @@ tre_aindex(int argc, VALUE *argv, VALUE self) {
 	regaparams_t aparams;
 	tre_build_aparams(&aparams, params);
 
-	// Find the first match
+	// Match data
 	regamatch_t match;
-	regmatch_t pmatch[1];
-	memset(&match, 0, sizeof(match));
-	match.nmatch = 1;
+	regmatch_t pmatch[num_captures + 1];
+	// memset(&match, 0, sizeof(match));
+	match.nmatch = num_captures + 1;
 	match.pmatch = pmatch;
 
-	long len = RSTRING_LEN(string) - NUM2LONG(offset);
-	// TODO: GC required?
-	VALUE substr = rb_str_substr(string, NUM2LONG(offset), len); 
+	// Scan
+	VALUE arr = rb_ary_new();
+	long char_offset_acc = char_offset;
+	// rb_global_variable(&arr);
 
-	int result = tre_reganexec(&preg,
-			StringValuePtr(substr),
-			len, &match, aparams, 0);
-	// Free
+	while (1) {
+		// Get substring to start with
+		long len = RSTRING_LEN(string) - char_offset;
+		if (char_offset >= len) break;
+		string = rb_str_substr(string, char_offset, len);
+
+		int result = tre_reganexec(&preg, StringValuePtr(string), len, &match, aparams, 0);
+
+		if (result == REG_NOMATCH) break;
+
+		// Fill in array with ranges
+		VALUE subarr;
+		if (match.nmatch == 1) 
+			subarr = arr;	// Fake
+		else {
+			subarr = rb_ary_new();
+			// rb_global_variable(&subarr);
+		}
+
+		unsigned int i;
+		for (i = 0; i < match.nmatch; ++i)
+			if (match.pmatch[i].rm_so == -1)
+				rb_ary_push(subarr, Qnil);
+			else {
+				VALUE range = rb_range_new(
+						LONG2NUM( char_offset_acc + rb_str_sublen(string, match.pmatch[i].rm_so) ),
+						LONG2NUM( char_offset_acc + rb_str_sublen(string, match.pmatch[i].rm_eo) ),
+						1);
+				// rb_global_variable(&range);
+
+				rb_ary_push(subarr, range);
+			}
+		if (match.nmatch > 1) rb_ary_push(arr, subarr);
+
+		// Stop or proceed
+		if (repeat == Qfalse)
+			break;
+		else {
+			char_offset = rb_str_sublen(string, match.pmatch[0].rm_eo);
+			if (char_offset == 0) char_offset = 1; // Weird case
+			char_offset_acc += char_offset;
+		}
+	}
+
+	// Free once
 	tre_regfree(&preg);
 
-	if (result == REG_NOMATCH)
+	return arr;
+}
+
+static VALUE
+tre_aindex(int argc, VALUE *argv, VALUE self) {
+	VALUE pattern, string, char_offset, params, ignore_case, multi_line;
+	rb_scan_args(argc, argv, "60", &pattern, &string, &char_offset, &params, &ignore_case, &multi_line);
+
+	Check_Type(string, T_STRING);
+
+	VALUE rarray = tre_traverse(pattern, string, NUM2LONG(char_offset), params,
+			ignore_case, multi_line, 0, Qfalse);
+
+	if (RARRAY_LEN(rarray) == 0)
 		return Qnil;
 	else
-		// Byte offset to char offset
-		// return rb_str_sublen(string, INT2NUM(NUM2INT(offset) + match.pmatch[0].rm_so) );
-		return 
-			rb_range_new(
-				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_so) ),
-				LONG2NUM( rb_str_sublen(string, NUM2INT(offset) + match.pmatch[0].rm_eo) - 1 ),
-				0);
+		return rb_ary_entry(rarray, 0);
+}
+
+static VALUE
+tre_ascan(int argc, VALUE *argv, VALUE self) {
+	VALUE pattern, string, char_offset, params, ignore_case, multi_line, num_captures;
+	rb_scan_args(argc, argv, "70", &pattern, &string, &char_offset, &params,
+			&ignore_case, &multi_line, &num_captures);
+
+	Check_Type(string, T_STRING);
+
+	VALUE rarray = tre_traverse(pattern, string, NUM2LONG(char_offset), params,
+			ignore_case, multi_line, NUM2INT(num_captures), Qtrue);
+
+	return rarray;
 }
 
 void
 Init_tre() {
 	mTRE = rb_define_module("TRE");
-	rb_define_method(mTRE, "_aindex", tre_aindex, -1);
-	// rb_define_method(mTRE, "_amatch", tre_amatch, -1);
+	rb_define_private_method(mTRE, "__aindex", tre_aindex, -1);
+	rb_define_private_method(mTRE, "__ascan",  tre_ascan, -1);
 }
 

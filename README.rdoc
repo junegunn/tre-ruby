@@ -1,6 +1,22 @@
 = tre-ruby
 
-Description goes here.
+tre-ruby is a Ruby binding for TRE library which is "a lightweight, robust, and
+efficient POSIX compliant regexp matching library with some exciting features
+such as approximate (fuzzy) matching." Since Ruby has builtin regexp support,
+this gem will only provide the interface for approximate matching, which is
+missing in Ruby.
+
+== Prerequisite
+
+* TRE (http://laurikari.net/tre/)
+
+== Installation
+
+  gem install tre-ruby
+
+== Examples
+
+  # TO BE FILLED IN
 
 == Contributing to tre-ruby
  
