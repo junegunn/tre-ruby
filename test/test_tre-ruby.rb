@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 $LOAD_PATH.unshift File.dirname(__FILE__) # FIXME
 require 'helper'
 
@@ -109,7 +111,6 @@ class TestTRE < Test::Unit::TestCase
 
 		# Test for unsupported x flag
 		assert_raise(ArgumentError) { TWISTER.aindex(/a/x) }
-		assert_raise(ArgumentError) { TWISTER.aindex(/a/u) }
 	end
 
 	def test_ascan_r

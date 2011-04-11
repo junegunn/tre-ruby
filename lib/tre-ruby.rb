@@ -116,6 +116,7 @@ private
 			opts &= ~Regexp::MULTILINE
 			ret[:ignore_case] = (opts & Regexp::IGNORECASE) > 0
 			opts &= ~Regexp::IGNORECASE
+			opts &= ~Regexp::FIXEDENCODING # FIXME
 			raise ArgumentError.new("Unsupported Regexp flag provided") if opts > 0
 
 			# Pessimistic estimation of the number of captures
