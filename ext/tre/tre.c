@@ -173,14 +173,14 @@ tre_aindex(int argc, VALUE *argv, VALUE self) {
 
 static VALUE
 tre_ascan(int argc, VALUE *argv, VALUE self) {
-	VALUE pattern, string, char_offset, params, ignore_case, multi_line, num_captures;
-	rb_scan_args(argc, argv, "70", &pattern, &string, &char_offset, &params,
-			&ignore_case, &multi_line, &num_captures);
+	VALUE pattern, string, char_offset, params, ignore_case, multi_line, num_captures, repeat;
+	rb_scan_args(argc, argv, "80", &pattern, &string, &char_offset, &params,
+			&ignore_case, &multi_line, &num_captures, &repeat);
 
 	Check_Type(string, T_STRING);
 
 	VALUE rarray = tre_traverse(pattern, string, NUM2LONG(char_offset), params,
-			ignore_case, multi_line, NUM2INT(num_captures), Qtrue);
+			ignore_case, multi_line, NUM2INT(num_captures), repeat);
 
 	return rarray;
 }
