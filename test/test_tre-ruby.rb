@@ -150,12 +150,30 @@ class TestTRE < Test::Unit::TestCase
 		assert_equal 1, TWISTER.asub(/(pe)(ck)/, '\2\2\1\1', TRE.fuzziness(3)).scan('ckckpepe').length
 	end
 
+	def test_asub!
+		copy = TWISTER.dup
+		rep = TWISTER.asub(/(pe)(ck)/, '\2\2\1\1', TRE.fuzziness(3))
+		copy.         asub!(/(pe)(ck)/, '\2\2\1\1', TRE.fuzziness(3))
+
+		assert_equal copy, rep
+		assert_not_equal copy, TWISTER
+	end
+
 	def test_agsub
 		assert_equal 15, TWISTER.ascan(/(pe)(ck)/, TRE.fuzziness(2)).length
 		assert_equal 4, TWISTER.ascan(/(pe)(ck)/, TRE.fuzziness(2)).select { |m| m[0] == 'peck' }.length
 		assert_equal 4, TWISTER.agsub(/(pe)(ck)/, '\2\2\1\1', TRE.fuzziness(2)).scan('ckckpepe').length
 
 		# TODO: More rigorous tests
+	end
+
+	def test_agsub!
+		copy = TWISTER.dup
+		rep = TWISTER.agsub(/(pe)(ck)/, '\2\2\1\1', TRE.fuzziness(3))
+		copy.         agsub!(/(pe)(ck)/, '\2\2\1\1', TRE.fuzziness(3))
+
+		assert_equal copy, rep
+		assert_not_equal copy, TWISTER
 	end
 
 	TWISTER = TREString.new <<-EOF

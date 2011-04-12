@@ -1,10 +1,11 @@
 # encoding: UTF-8
 
-$LOAD_PATH.unshift '.' #FIXME
 require 'tre-ruby/tre'
 
 module TRE
-	# Returns a TRE::AParams object with given fuzziness (max_err)
+	# Returns a TRE::AParams object with the given fuzziness (max_err)
+	# @param [Fixnum] max_err
+	# @return [TRE::AParams]
 	def TRE.fuzziness max_err
 		@@fuzzies ||= {}
 		return @@fuzzies[max_err] if @@fuzzies.has_key? max_err
@@ -15,7 +16,11 @@ module TRE
 		@@fuzzies[max_err] = param
 	end
 
-	# Returns Range
+	# Locates the pattern in the string and returns the Range object for the first match
+	# @param [String/Regexp] pattern
+	# @param [Fixnum] offset
+	# @param [TRE::AParams] params
+	# @return [Range]
 	def aindex pattern, offset = 0, params = TRE.fuzziness(0)
 		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
 		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
@@ -25,19 +30,22 @@ module TRE
 				input[:ignore_case], input[:multi_line])
 	end
 
-	# Returns the first match as a String
+	# Locates the pattern in the string and returns the first matching substring.
+	# @param [String/Regexp] pattern
+	# @param [Fixnum] offset
+	# @param [TRE::AParams] params
+	# @return [String]
 	def afind pattern, offset = 0, params = TRE.fuzziness(0)
 		range = aindex pattern, offset, params
 
 		range && self[range]
 	end
 
-	# Returns Array of Ranges
-	def ascan_r pattern, params = TRE.fuzziness(0), &block
-		ascan_r_impl pattern, params, true, &block
-	end
-
-	# Returns Array of Substrings
+	# Scans for the pattern in the String and returns Array of matching substrings 
+	# or Array of Array of Strings when the given pattern contains Regexp captures.
+	# @param [String/Regexp] pattern
+	# @param [TRE::AParams] params
+	# @return [Array]
 	def ascan pattern, params = TRE.fuzziness(0), &block
 		result = ascan_r(pattern, params).map { |e|
 			case e
@@ -53,12 +61,48 @@ module TRE
 		yield_scan_result result, &block
 	end
 	
+	# Same as TRE#ascan, but returns Array of Range objects instead of String objects.
+	# @param [String/Regexp] pattern
+	# @param [TRE::AParams] params
+	# @return [Array]
+	def ascan_r pattern, params = TRE.fuzziness(0), &block
+		ascan_r_impl pattern, params, true, &block
+	end
+
+	# Returns a copy of the String with the first match substituted
+	# @param [String/Regexp] pattern
+	# @param [String] replacement
+	# @param [TRE::AParams] params
+	# @return [String]
 	def asub pattern, replacement, params = TRE.fuzziness(0), &block
 		asub_impl pattern, replacement, params, false, &block
 	end
 
+	# Substitutes the first match
+	# @param [String/Regexp] pattern
+	# @param [String] replacement
+	# @param [TRE::AParams] params
+	# @return [String]
+	def asub! pattern, replacement, params = TRE.fuzziness(0), &block
+		self.replace asub(pattern, replacement, params, &block)
+	end
+
+	# Returns a copy of the String with every match substituted
+	# @param [String/Regexp] pattern
+	# @param [String] replacement
+	# @param [TRE::AParams] params
+	# @return [String]
 	def agsub pattern, replacement, params = TRE.fuzziness(0), &block
 		asub_impl pattern, replacement, params, true, &block
+	end
+
+	# Substitutes every match
+	# @param [String/Regexp] pattern
+	# @param [String] replacement
+	# @param [TRE::AParams] params
+	# @return [String]
+	def agsub! pattern, replacement, params = TRE.fuzziness(0), &block
+		self.replace agsub(pattern, replacement, params, &block)
 	end
 
 	# Parameters for approximate matching.
@@ -97,6 +141,7 @@ module TRE
 		end
 	end
 
+private
 	# TODO
 	def amatch pattern, offset = 0, params = TRE.fuzziness(0)
 		raise NotImplementedError
@@ -104,7 +149,6 @@ module TRE
 		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
 		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
 	end
-private
 	def parse_pattern pattern
 		ret = {}
 		case pattern
