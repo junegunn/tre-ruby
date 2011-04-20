@@ -1,4 +1,5 @@
 #include "ruby.h"
+#include "ruby/version.h"
 #include "tre/tre.h"
 
 VALUE mTRE;
@@ -81,6 +82,14 @@ tre_compile_regex(regex_t* preg, VALUE pattern, VALUE ignore_case, VALUE multi_l
 	}
 }
 
+#if RUBY_VERSION_MAJOR == 1 && RUBY_VERSION_MINOR == 8
+	#define CHAR_LENGTH(string)       RSTRING_LEN(string)
+	#define BYTE_TO_CHAR(string, bo)  bo
+#else
+	#define CHAR_LENGTH(string)       NUM2LONG( rb_str_length(string) ) 
+	#define BYTE_TO_CHAR(string, bo)  rb_str_sublen(string, bo)
+#endif
+
 static VALUE
 tre_traverse(VALUE pattern, VALUE string, long char_offset, VALUE params,
 		VALUE ignore_case, VALUE multi_line, int num_captures, VALUE repeat) {
@@ -107,18 +116,19 @@ tre_traverse(VALUE pattern, VALUE string, long char_offset, VALUE params,
 
 	while (1) {
 		// Get substring to start with
-		long len = RSTRING_LEN(string) - char_offset;
-		if (char_offset >= len) break;
-		string = rb_str_substr(string, char_offset, len);
+		long char_len = CHAR_LENGTH(string) - char_offset;
+		if (char_len <= 0) break;
+		string = rb_str_substr(string, char_offset, char_len);
 
-		int result = tre_reganexec(&preg, StringValuePtr(string), len, &match, aparams, 0);
+		int result = tre_reganexec(&preg, StringValuePtr(string), 
+											RSTRING_LEN(string), &match, aparams, 0);
 
 		if (result == REG_NOMATCH) break;
 
 		// Fill in array with ranges
 		VALUE subarr;
 		if (match.nmatch == 1) 
-			subarr = arr;	// Fake
+			subarr = arr;	// Faking.. kind of.
 		else {
 			subarr = rb_ary_new();
 			// rb_global_variable(&subarr);
@@ -126,12 +136,14 @@ tre_traverse(VALUE pattern, VALUE string, long char_offset, VALUE params,
 
 		unsigned int i;
 		for (i = 0; i < match.nmatch; ++i)
+			// No match
 			if (match.pmatch[i].rm_so == -1)
 				rb_ary_push(subarr, Qnil);
+			// Match => Range
 			else {
 				VALUE range = rb_range_new(
-						LONG2NUM( char_offset_acc + rb_str_sublen(string, match.pmatch[i].rm_so) ),
-						LONG2NUM( char_offset_acc + rb_str_sublen(string, match.pmatch[i].rm_eo) ),
+						LONG2NUM( char_offset_acc + BYTE_TO_CHAR(string, match.pmatch[i].rm_so) ),
+						LONG2NUM( char_offset_acc + BYTE_TO_CHAR(string, match.pmatch[i].rm_eo) ),
 						1);
 				// rb_global_variable(&range);
 
@@ -143,7 +155,7 @@ tre_traverse(VALUE pattern, VALUE string, long char_offset, VALUE params,
 		if (repeat == Qfalse)
 			break;
 		else {
-			char_offset = rb_str_sublen(string, match.pmatch[0].rm_eo);
+			char_offset = BYTE_TO_CHAR(string, match.pmatch[0].rm_eo);
 			if (char_offset == 0) char_offset = 1; // Weird case
 			char_offset_acc += char_offset;
 		}

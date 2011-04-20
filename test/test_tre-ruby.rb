@@ -76,7 +76,7 @@ class TestTRE < Test::Unit::TestCase
 		assert_equal nil, TWISTER.aindex(/toult/i, 0, params)
 
 		# Frozen: cannot modify
-		assert_raise(RuntimeError) { params.max_err = 2 }
+		assert_raise(RUBY_VERSION =~ /^1.8/ ? TypeError : RuntimeError) { params.max_err = 2 }
 
 		# Warm AParams
 		params = TRE::AParams.new
@@ -174,6 +174,52 @@ class TestTRE < Test::Unit::TestCase
 
 		assert_equal copy, rep
 		assert_not_equal copy, TWISTER
+	end
+
+	def test_multibyte
+		$KCODE = 'u' if RUBY_VERSION =~ /^1.8/
+		lyric = "
+			사랑을 한다는 말은 못했어
+			어쨌거나 지금은 너무 늦어버렸어
+			그때 나는 무얼 하고 있었나
+			그 미소는 너무 아름다웠어
+			난 정말 그대 그대만을 좋아헀어
+			나에게 이런 슬픔 안겨 주는 그대여
+			제발 이별만은 말 하지 말아요
+			나에겐 오직 그대만이 전부였잖아
+			오 그대여 가지 마세요
+			나를 정말 떠나 가나요
+			오 그대여 가지 마세요
+			나는 지금 울잖아요
+			난 알아요
+			이 밤이 흐르면 YO!
+			그대 떠나는 모습 뒤로 하고
+			마지막 키스에 슬픈 마음
+			정말 떠나는가
+			사랑을 하고 싶어 너의 모든 향기
+			내 몸 속에 젖어 있는 너의 많은 숨결
+			그 미소 그 눈물 그 알 수 없는 마음 그대 마음
+			그리고 또 마음 그대 마음
+			그 어렵다는 편지는 쓰지 않아도 돼
+			너의 진실한 모습을 바라보고 있어요
+			아직도 마음속엔 내가 있나요
+			나는 그대의 영원한
+			난 정말 그대 그대만을 좋아했어
+			나에게 이런 슬픔 안겨주는 그대여
+			오 그대여 가지 마세요
+			나를 정말 떠나 가나요
+			오 그대여 가지 마세요
+			나는 지금 울잖아요
+			오 그대여 가지 마세요
+			나를 정말 떠나 가나요
+			오 그대여 가지 마세요
+			나는 지금 울잖아요"
+		srch = "오 그대여 가지 마세요"
+		assert_equal 6,
+			lyric.extend(TRE).ascan_r(/#{srch}/i, TRE.fuzziness(0)).length
+		assert_equal 6,
+			lyric.extend(TRE).ascan(/#{srch}/i, TRE.fuzziness(0)).length
+		assert lyric.extend(TRE).ascan(/#{srch}/i, TRE.fuzziness(0)).all? { |e| e == srch }
 	end
 
 	TWISTER = TREString.new <<-EOF
