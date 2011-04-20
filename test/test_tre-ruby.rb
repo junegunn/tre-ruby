@@ -1,6 +1,5 @@
 # encoding: UTF-8
 
-$LOAD_PATH.unshift File.dirname(__FILE__) # FIXME
 require 'helper'
 
 class TestTRE < Test::Unit::TestCase
