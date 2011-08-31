@@ -13,7 +13,9 @@ missing in Ruby.
 
 ## Installation
 
-  gem install tre-ruby
+```
+gem install tre-ruby
+```
 
 ## Setting up
 TRE is an extension module for String. You can extend a String object with it, or include it into String class
