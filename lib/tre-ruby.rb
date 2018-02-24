@@ -4,7 +4,7 @@ require 'tre-ruby/tre'
 
 module TRE
 	# Returns a TRE::AParams object with the given fuzziness (max_err)
-	# @param [Fixnum] max_err
+	# @param [Numeric] max_err
 	# @return [TRE::AParams]
 	def TRE.fuzziness max_err
 		@@fuzzies ||= {}
@@ -18,12 +18,12 @@ module TRE
 
 	# Locates the pattern in the string and returns the Range object for the first match
 	# @param [String/Regexp] pattern
-	# @param [Fixnum] offset
+	# @param [Numeric] offset
 	# @param [TRE::AParams] params
 	# @return [Range]
 	def aindex pattern, offset = 0, params = TRE.fuzziness(0)
 		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
-		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
+		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Numeric
 
 		input = parse_pattern pattern
 		__aindex(input[:source], self, offset, params, 
@@ -32,7 +32,7 @@ module TRE
 
 	# Locates the pattern in the string and returns the first matching substring.
 	# @param [String/Regexp] pattern
-	# @param [Fixnum] offset
+	# @param [Numeric] offset
 	# @param [TRE::AParams] params
 	# @return [String]
 	def afind pattern, offset = 0, params = TRE.fuzziness(0)
@@ -147,7 +147,7 @@ private
 		raise NotImplementedError
 
 		raise ArgumentError.new("Invalid parameter") unless params.is_a? TRE::AParams
-		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Fixnum
+		raise ArgumentError.new("Invalid offset parameter") unless offset.is_a? Numeric
 	end
 	def parse_pattern pattern
 		ret = {}
